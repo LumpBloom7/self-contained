@@ -67,41 +67,11 @@ services:
 
              
             ## IsaacSim needs to precompile a lot of stuff. 
-            # Rather than doing this on every container, it is more efficient to store them for reuse on a reusable volume.
-            - type: volume
-              source: cache
-              target: /root/.cache
-              volume:
-                nocopy: true
-                subpath: .cache
-
-            - type: volume
-              source: cache
-              target: /root/.nv
-              volume:
-                nocopy: true
-                subpath: .nv
-            
-            - type: volume
-              source: cache
-              target: /root/.nvidia-omniverse
-              volume:
-                nocopy: true
-                subpath: .nvidia-omniverse
-
-            - type: volume
-              source: cache
-              target: /root/.local/share/ov/data
-              volume:
-                nocopy: true
-                subpath: .local/share/ov/data
-
-            - type: volume
-              source: cache
-              target: /.isaacsim/kit/
-              volume:
-                nocopy: true
-                subpath: .isaacsim/kit/
+            # Rather than doing this on every container, it is more efficient to store them for reuse.
+            - /tmp/container/isaac_sim/.cache:/root/.cache:rw
+            - /tmp/container/isaac_sim/.nvidia-omniverse:/root/.nvidia-omniverse:rw
+            - /tmp/container/isaac_sim/.local/share/ov/data:/root/.local/share/ov/data:rw
+            - /tmp/container/isaac_sim/.nv:/root/.nv:rw
            
         security_opt:
             - label=type:container_runtime_t
@@ -115,6 +85,3 @@ services:
                           count: all
                           capabilities:
                               - gpu
-
-volumes:
-    cache: {}
