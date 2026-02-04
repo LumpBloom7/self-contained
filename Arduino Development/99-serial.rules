@@ -1,0 +1,5 @@
+# When using rootless containers, the user in the container does not have rw access to tty files as they are owned by root on host
+# Despite giving the container user access to the dialout group, I (derrick) could not get that to work for the root user in terminal
+# My patience is limited, and I opted to give everyone rw access to the tty files outright. This also means that the dialout group isn't needed even for host.
+KERNEL=="ttyUSB[0-9]*",MODE="0666"
+KERNEL=="ttyACM[0-9]*",MODE="0666"

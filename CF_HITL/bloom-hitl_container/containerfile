@@ -1,0 +1,23 @@
+FROM  osrf/ros:jazzy-desktop-full
+
+RUN apt update
+RUN apt install -y pipx bear clang clangd gcc-arm-none-eabi 
+
+# Install crazyswarm dependencies
+RUN apt install -y python3-pip ros-jazzy-motion-capture-tracking ros-jazzy-tf-transformations ros-jazzy-crazyflie* swig
+RUN pipx install  cfclient cflib --include-deps
+
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+RUN echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> /root/.bashrc
+
+RUN echo "export CC=clang" >> /root/.bashrc
+RUN echo "export CXX=clang++" >> /root/.bashrc
+
+RUN apt install -y openocd gcc-arm-none-eabi gdb-multiarch
+RUN ln -s /usr/bin/gdb-multiarch /usr/local/bin/arm-none-eabi-gdb
+RUN pipx ensurepath
+
+RUN curl https://packages.osrfoundation.org/gazebo.gpg --output /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] https://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" |  tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+RUN apt-get update
+RUN apt-get install -y gz-harmonic

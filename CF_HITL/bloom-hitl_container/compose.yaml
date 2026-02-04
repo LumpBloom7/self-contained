@@ -1,0 +1,64 @@
+name: cf_dxy_hitl
+x-podman:
+    in_pod: false # We only have a single container, having a cluster/pod is overkill
+services:
+    sim_cf:
+        container_name: cf_ros2_hitl
+        image: crazzy_jazzy
+        hostname: CrazzyJazzy
+
+             # We want interactivity in this container
+        stdin_open: true
+        tty: true 
+        
+        build:
+            context: .
+            dockerfile: containerfile
+
+        environment:
+            # Usually the root user has a runtime directory of 0, we want to substitute in order to better have access to host resources
+            - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+
+            # Let's set some sane defaults based on what the user is using when composing the containers
+            - DISPLAY=${DISPLAY}
+            - XAUTHORITY=${XDG_RUNTIME_DIR}/.XAuthority # We need this to be able to forward to X11/XWayland
+
+            # Qt may spazz and gazebo would be incorrectly render. Let's tell it not to expect X11 shared memory
+            - QT_X11_NO_MITSHM=1
+
+        # Devices are enumerated and made final. It also sets up appropriate permissions 
+        # If a device ceases to exist, the container will fail to start.
+        # Likewise, if a new device exists, the container will not acknowledge it.
+        # If the container should handle device removal/addition gracefully, mount as a volume instead.
+        devices:
+            # Get display interfaces
+            - /dev/dri
+
+        volumes:
+            # For crazyflie radio and USB access. 
+            # Make sure UDEV rules are in place that allows UACCESS. (Such as the one provided alongside this file)
+            - /dev/bus/usb:/dev/bus/usb:rw 
+
+            # For joysticks and/or controllers
+            # Udev rules are also needed. Refer to https://github.com/ValveSoftware/steam-devices to obtain universal controller udev rules.
+            - /dev/input:/dev/input:ro 
+
+            # XWayland passthrough
+            - ${XDG_RUNTIME_DIR}/.XAuthority:${XDG_RUNTIME_DIR}/.XAuthority:ro 
+            - /tmp/.X11-unix:/tmp/.X11-unix:ro # Grab the X11 sockets
+
+            # Mount my source folder
+            - ${HOME}/Source:/root/Source:rw
+
+        security_opt:
+            - label=type:container_runtime_t
+
+        # For hosts with nvidia-container-toolkit, remove this block if not available (eg. MacOS)
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities:
+                              - gpu

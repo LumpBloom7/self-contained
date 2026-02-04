@@ -1,0 +1,78 @@
+name: Crazyflie
+x-podman:
+    in_pod: false # We only have a single container, having a cluster/pod is overkill
+services:
+    sim_cf:
+        container_name: sim_cf
+        image: bloom/sim_cf
+        hostname: sim_cf
+
+        # We want interactivity in this container
+        stdin_open: true
+        tty: true
+
+        environment:
+            # Usually the root user has a runtime directory of 0, we want to substitute in order to better have access to host resources
+            - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+
+            # Let's set some sane defaults based on what the user is using when composing the containers
+            - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+            - DISPLAY=${DISPLAY}
+            - XAUTHORITY=${XAUTHORITY} # We need this to be able to forward to X11/XWayland
+            - XDG_SESSION_TYPE=${XDG_SESSION_TYPE} # Indicates to the container whether the host is Wayland or X11
+
+            # Qt may spazz and gazebo would be incorrectly render. Let's tell it not to expect X11 shared memory
+            - QT_X11_NO_MITSHM=1
+
+        build:
+            context: .
+            dockerfile: sim_cf.containerfile
+
+        devices:
+            # Get display interfaces
+            - /dev/dri
+
+        volumes:
+            # For crazyflie radio and USB access. 
+            # Make sure UDEV rules are in place that allows UACCESS. (Such as the one provided alongside this file)
+            - /dev/bus/usb:/dev/bus/usb:rw 
+
+            # For joysticks and/or controllers
+            # Udev rules are also needed. Refer to https://github.com/ValveSoftware/steam-devices to obtain universal controller udev rules.
+            - /dev/input:/dev/input:ro 
+
+            ####
+            ## WARNING!
+            ## On modern Wayland systems, the XAuthority file is updated *every boot*.
+            ## This means X11 apps will not run in the container after a reboot. Re-composing will lose any changes present in the container.
+            ##
+            ## You effectively have 2 options:
+            ## 1. Every time you enter the container, pass in $(XAUTHORITY) as an environment variable.
+            ##   - I recommend having an shell alias for this
+            ##   - Some terminals (Ptyxis) may pass these in on your behalf :)
+            ## 2. Provide a static XAuthority file, and link that that to the real XAuthority file on host. (You can pass the updated var when running compose)
+            ##    - See also: https://percevalsa.github.io/posts/devcontainer-x11-wayland/
+            ##    - Don't forget to uncomment the .XAuthority binding below
+            ## 3. Recreate the container on every reboot. Any changes made to the filesystem would be lost
+            ##    - Data intended to be persistent (like source code or VSCode server stuff), should live in a persistent docker/podman volume.
+            ####
+            - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}:ro # This contains the XAuthority and the Wayland socket for the host
+            - /tmp/.X11-unix:/tmp/.X11-unix:ro # Let's grab the X11 sockets too 
+            #- ${HOME}/.XAuthority:${USER}/.XAuthority:ro  # Uncomment if you use ~/.XAuthority
+
+        security_opt:
+            - label=type:container_runtime_t
+
+        # For hosts with nvidia-container-toolkit, remove this block if not available (eg. MacOS)
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities:
+                              - gpu
+
+        config:
+            environment:
+

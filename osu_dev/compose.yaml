@@ -1,0 +1,54 @@
+name: osu_dev
+x-podman:
+    in_pod: false # We only have a single container, having a cluster/pod is overkill
+services:
+    dev:
+        container_name: osu_dev
+        image: osu_dev_image
+        hostname: osu_dev
+
+        # We want interactivity in this container
+        stdin_open: true
+        tty: true 
+        
+        build:
+            context: .
+            dockerfile: containerfile
+
+        environment:
+            # Usually the root user has a runtime directory of 0, we want to substitute in order to better have access to host resources
+            - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+
+            # Let's set some sane defaults based on what the user is using when composing the containers
+            - DISPLAY=${DISPLAY}
+            - XAUTHORITY=${XDG_RUNTIME_DIR}/.XAuthority # We need this to be able to forward to X11/XWayland
+
+            # Qt may spazz and gazebo would be incorrectly render. Let's tell it not to expect X11 shared memory
+            - QT_X11_NO_MITSHM=1
+
+        # Devices are enumerated and made final. It also sets up appropriate permissions 
+        # If a device ceases to exist, the container will fail to start.
+        # Likewise, if a new device exists, the container will not acknowledge it.
+        # If the container should handle device removal/addition gracefully, mount as a volume instead.
+        devices:
+            # Get display interfaces
+            - /dev/dri
+
+        volumes:
+            # This provides pipewire access, allowing audio functionality 
+            - ${XDG_RUNTIME_DIR}/pipewire-0:${XDG_RUNTIME_DIR}/pipewire-0:ro
+
+            # XWayland passthrough
+            - ${XDG_RUNTIME_DIR}/.XAuthority:${XDG_RUNTIME_DIR}/.XAuthority:ro 
+            - /tmp/.X11-unix:/tmp/.X11-unix:ro # Grab the X11 sockets
+
+            # Mount my source folder
+            - ${HOME}/Source:/root/Source:rw
+
+            # Mount the osu data dir
+            - /mnt/Data/Games/osu! - Secondary:/root/.local/share/osu:rw
+
+        security_opt:
+            - label=type:container_runtime_t
+
+

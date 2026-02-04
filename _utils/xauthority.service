@@ -1,0 +1,9 @@
+[Unit]
+Description=Create Xauthority to forward screen in devcontainers
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c "while [ ! -e %t/.mutter-Xwaylandauth.* ]; do sleep 1; done; cp %t/.mutter-Xwaylandauth.* %t/.XAuthority"
+
+[Install]
+WantedBy=graphical-session.target

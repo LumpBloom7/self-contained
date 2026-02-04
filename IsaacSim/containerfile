@@ -1,0 +1,31 @@
+FROM ubuntu:24.04
+
+WORKDIR /root/
+
+RUN apt update
+RUN apt install -y git libglu1-mesa libxt6t64 libvulkan1 libgl1 x11-common libgomp1 wget unzip
+
+RUN wget "https://download.isaacsim.omniverse.nvidia.com/isaac-sim-standalone-5.1.0-linux-x86_64.zip"; unzip "isaac-sim-standalone-5.1.0-linux-x86_64.zip" -d /root/isaacsim; rm -rf isaac-sim-standalone-5.1.0-linux-x86_64.zip
+
+RUN git clone https://github.com/isaac-sim/IsaacLab.git
+
+WORKDIR /root/IsaacLab
+RUN ln -s /root/isaacsim _isaac_sim
+
+# We trick the script to think it is running in a fancy terminal
+# so that it doesn't complain when it inevitably fails to clear the screen or use tabs
+RUN TERM=xterm bash /root/IsaacLab/isaaclab.sh --install
+
+WORKDIR /root
+
+# This is a carbon copy of the regular isaacsim python.sh. 
+# The only difference is that the script properly takes into account potential symlinking
+COPY --chmod=0755 ./python.sh /root/isaacsim
+
+RUN echo "alias isaacsim='/root/isaacsim/isaac-sim.sh'" >> /root/.bashrc
+RUN echo "alias isaaclab='/root/IsaacLab/isaaclab.sh'" >> /root/.bashrc
+
+# Basic symlinking for ease of use
+RUN ln -s /root/isaacsim/python.sh /usr/bin/python
+RUN ln -s /root/isaacsim/python.sh /usr/bin/python3
+RUN ln -s /root/isaacsim/python.sh /usr/bin/python3.11

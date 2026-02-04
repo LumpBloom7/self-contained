@@ -1,0 +1,120 @@
+name: container_isaac_sim
+x-podman:
+    in_pod: false # We only have a single container, having a cluster/pod is overkill
+services:
+    base:
+        container_name: container_isaac_sim
+        image: bloom/isaac_sim
+        hostname: ContainerIsaacSim
+
+        # Derrick:
+        ## In theory, these ports are used to allow for streaming to an external client
+        ## This is the rootless alternative to "network=host", and even then it may not connect properly. (I saw an initial connection attempt, but it never fully connects)
+        ##
+        ## However, it is my opinion that streaming the app to the bespoke streaming client on the outside is absolutely fucking stupid!!
+        ## We *already* set up X11 window forwarding so why jump through hoops and access the window through streaming?
+        ## Not to mention that the video streaming and control will likely have latency, and you can't even have a flexible window
+        ##
+        ## ports:
+        ##    - 49100:49100
+        ##    - 47998:47998/udp
+
+        # We want interactivity in this container
+        stdin_open: true
+        tty: true 
+        
+        # Use this if a specific image needs to be built
+        build:
+            context: .
+            dockerfile: containerfile
+
+        environment:
+            - OMNI_KIT_ALLOW_ROOT=1
+            - OMNI_KIT_ACCEPT_EULA=1
+
+            # Let's set some sane defaults based on what the user is using when composing the containers
+            - DISPLAY=${DISPLAY}
+            - XAUTHORITY=${XDG_RUNTIME_DIR}/.XAuthority # We need this to be able to forward to X11/XWayland
+
+            # Qt may spazz and gazebo would be incorrectly render. Let's tell it not to expect X11 shared memory
+            - QT_X11_NO_MITSHM=1
+
+        # Devices are enumerated and made final. It also sets up appropriate permissions 
+        # If a device ceases to exist, the container will fail to start.
+        # Likewise, if a new device exists, the container will not acknowledge it.
+        # If the container should handle device removal/addition gracefully, mount as a volume instead.
+        devices:
+            - /dev/dri
+        
+        volumes:
+            - /tmp/.X11-unix:/tmp/.X11-unix:ro # Grab the X11 sockets
+
+            ## WARNING!
+            ## On modern Wayland systems, the XAuthority file is updated *every boot*.
+            ## This means X11 apps will not run in the container after a reboot. Re-composing will lose any changes present in the container.
+            ##
+            ## You effectively have 2 options:
+            ## 1. Every time you enter the container, pass in $(XAUTHORITY) as an environment variable, and bind the XAuthority file.
+            ##   - I recommend having an shell alias for this
+            ##   - Some terminals (Ptyxis) may pass these in on your behalf :)
+            ## 2. Provide a static XAuthority file, and link that that to the real XAuthority file on host.
+            ##    - See also: https://percevalsa.github.io/posts/devcontainer-x11-wayland/
+            ##    - Don't forget to uncomment the .XAuthority binding below
+            ## 3. Recreate the container on every reboot. Any changes made to the filesystem would be lost
+            ##    - Data intended to be persistent (like source code or VSCode server stuff), should live in a persistent docker/podman volume.
+            ####
+            - ${XDG_RUNTIME_DIR}/.XAuthority:${XDG_RUNTIME_DIR}/.XAuthority:ro 
+
+             
+            ## IsaacSim needs to precompile a lot of stuff. 
+            # Rather than doing this on every container, it is more efficient to store them for reuse on a reusable volume.
+            - type: volume
+              source: cache
+              target: /root/.cache
+              volume:
+                nocopy: true
+                subpath: .cache
+
+            - type: volume
+              source: cache
+              target: /root/.nv
+              volume:
+                nocopy: true
+                subpath: .nv
+            
+            - type: volume
+              source: cache
+              target: /root/.nvidia-omniverse
+              volume:
+                nocopy: true
+                subpath: .nvidia-omniverse
+
+            - type: volume
+              source: cache
+              target: /root/.local/share/ov/data
+              volume:
+                nocopy: true
+                subpath: .local/share/ov/data
+
+            - type: volume
+              source: cache
+              target: /.isaacsim/kit/
+              volume:
+                nocopy: true
+                subpath: .isaacsim/kit/
+           
+        security_opt:
+            - label=type:container_runtime_t
+
+        # For hosts with nvidia-container-toolkit
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities:
+                              - gpu
+
+volumes:
+    cache: {}
