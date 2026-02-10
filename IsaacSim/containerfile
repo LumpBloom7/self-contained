@@ -29,3 +29,5 @@ RUN echo "alias isaaclab='/root/IsaacLab/isaaclab.sh'" >> /root/.bashrc
 RUN ln -s /root/isaacsim/python.sh /usr/bin/python
 RUN ln -s /root/isaacsim/python.sh /usr/bin/python3
 RUN ln -s /root/isaacsim/python.sh /usr/bin/python3.11
+
+RUN python -m pip install toml
