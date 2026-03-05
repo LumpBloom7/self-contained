@@ -1,15 +1,14 @@
-name: arduino
+name: stm32
 x-podman:
     in_pod: false # We only have a single container, having a cluster/pod is overkill
 services:
     sim_cf:
-        container_name: Arduino
-        hostname: arduino
-        image: arduino
+        container_name: STM32
+        hostname: stm32
+        image: stm32_vscode
         # We want interactivity in this container
         stdin_open: true
         tty: true
-        
         build:
             context: .
             dockerfile: containerfile
@@ -18,7 +17,7 @@ services:
             # We need arbitrary tty access
             # Be sure to add udev rules to allow everyone to rw to the relevant tty files
             #  - A sample udev rule is provided alongside this compose file
-            - /dev:/dev:rw
+            - /dev:/dev:ro
 
         security_opt:
             - label=type:container_runtime_t
