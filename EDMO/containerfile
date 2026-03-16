@@ -1,0 +1,9 @@
+FROM fedora:latest
+
+RUN dnf install -y python3 udevadm dotnet-sdk-9.0
+
+# EDMO Frontend depends on NPM modules
+RUN dnf install -y npm
+
+# Allows ASP.net to hold more handles
+RUN echo fs.inotify.max_user_instances=524288 >> /etc/sysctl.conf
