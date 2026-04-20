@@ -1,0 +1,33 @@
+name: racket
+x-podman:
+    in_pod: false # We only have a single container, having a cluster/pod is overkill
+services:
+    base:
+        container_name: Racket
+        image: racket
+        hostname: Racket
+
+        # We want interactivity in this container
+        stdin_open: true
+        tty: true 
+        
+        # Use this if a specific image needs to be built
+        build:
+            context: .
+            dockerfile: containerfile
+
+        environment:
+            # Usually the root user has a runtime directory of 0, we want to substitute in order to better have access to host resources
+            - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+
+            # Let's set some sane defaults based on what the user is using when composing the containers
+            - DISPLAY=${DISPLAY}
+            - XAUTHORITY=${XDG_RUNTIME_DIR}/.XAuthority # We need this to be able to forward to X11/XWayland
+
+            # Qt may spazz and gazebo would be incorrectly render. Let's tell it not to expect X11 shared memory
+            - QT_X11_NO_MITSHM=1
+
+
+        security_opt:
+            - label=type:container_runtime_t
+

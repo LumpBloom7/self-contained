@@ -1,0 +1,5 @@
+FROM fedora:latest
+
+RUN dnf install racket raco -y
+
+RUN raco pkg install -j 4 --force --batch --deps search-auto racket-langserver
