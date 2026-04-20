@@ -1,0 +1,25 @@
+name: cpp
+x-podman:
+    in_pod: false # We only have a single container, having a cluster/pod is overkill
+services:
+    sim_cf:
+        container_name: cpp
+        hostname: cpp
+        image: cpp
+        # We want interactivity in this container
+        stdin_open: true
+        tty: true
+        
+        cap_add:
+            - SYS_PTRACE
+        
+        build:
+            context: .
+            dockerfile: containerfile
+
+        volumes:
+            - ~/Grading:/root/Grading:rw
+
+        security_opt:
+            - label=type:container_runtime_t
+            - seccomp=unconfined
