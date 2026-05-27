@@ -27,6 +27,14 @@ services:
             # Qt may spazz and gazebo would be incorrectly render. Let's tell it not to expect X11 shared memory
             - QT_X11_NO_MITSHM=1
 
+            # Wayland specific environment variables
+            - GDK_BACKEND=wayland
+            - QT_QPA_PLATFORM=wayland
+            - CLUTTER_BACKEND=wayland
+            - SDL_VIDEODRIVER=wayland
+            - XDG_SESSION_TYPE=wayland
+            - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+
         # Devices are enumerated and made final. It also sets up appropriate permissions 
         # If a device ceases to exist, the container will fail to start.
         # Likewise, if a new device exists, the container will not acknowledge it.
@@ -55,6 +63,9 @@ services:
             ##    - Data intended to be persistent (like source code or VSCode server stuff), should live in a persistent docker/podman volume.
             ####
             - ${XDG_RUNTIME_DIR}/.XAuthority:${XDG_RUNTIME_DIR}/.XAuthority:ro 
+
+            # Pass wayland socket
+            - ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:ro
 
             # Pass GNUPG socket if needed. (Used for code signing or whatever)
             - ${XDG_RUNTIME_DIR}/gnupg:${XDG_RUNTIME_DIR}/gnupg:ro
