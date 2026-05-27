@@ -1,0 +1,13 @@
+FROM fedora:latest
+
+RUN dnf install -y rustup cc
+
+ENV PATH="/root/.cargo/bin:${PATH}" 
+
+RUN rustup-init -y
+
+WORKDIR /root
+
+RUN dnf install -y SDL3-devel
+RUN dnf install -y vulkan vulkan-tools
+

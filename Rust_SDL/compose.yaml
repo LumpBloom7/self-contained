@@ -1,0 +1,59 @@
+name: rust_sdl
+x-podman:
+    in_pod: false # We only have a single container, having a cluster/pod is overkill
+services:
+    base:
+        container_name: rust_sdl
+        hostname: rust_sdl
+
+        # We want interactivity in this container
+        stdin_open: true
+        tty: true 
+        
+        # Use this if a specific image needs to be built
+        build:
+            context: .
+            dockerfile: containerfile
+
+        environment:
+            # Usually the root user has a runtime directory of 0, we want to substitute in order to better have access to host resources
+            - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+            
+            - SDL_VIDEODRIVER=wayland
+            - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+
+        # Devices are enumerated and made final. It also sets up appropriate permissions 
+        # If a device ceases to exist, the container will fail to start.
+        # Likewise, if a new device exists, the container will not acknowledge it.
+        # If the container should handle device removal/addition gracefully, mount as a volume instead.
+        devices:
+            # Get display interfaces
+            - /dev/dri
+
+        volumes:
+            # This provides pipewire access, allowing audio functionality 
+            - ${XDG_RUNTIME_DIR}/pipewire-0:${XDG_RUNTIME_DIR}/pipewire-0:ro
+
+            # Pass wayland socket
+            - ${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:ro
+
+            # Mount my source folder
+            - ${HOME}/Source:/root/Source:rw
+
+        security_opt:
+            - label=type:container_runtime_t
+
+        # For hosts with nvidia-container-toolkit, remove this block if not available (eg. MacOS)
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities:
+                              - gpu
+
+        config:
+            environment:
+
+
