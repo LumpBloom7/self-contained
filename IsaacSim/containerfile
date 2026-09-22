@@ -7,7 +7,7 @@ RUN apt install -y git libglu1-mesa libxt6t64 libvulkan1 libgl1 x11-common libgo
 
 RUN wget "https://download.isaacsim.omniverse.nvidia.com/isaac-sim-standalone-5.1.0-linux-x86_64.zip"; unzip "isaac-sim-standalone-5.1.0-linux-x86_64.zip" -d /root/isaacsim; rm -rf isaac-sim-standalone-5.1.0-linux-x86_64.zip
 
-RUN git clone https://github.com/isaac-sim/IsaacLab.git
+RUN git clone https://github.com/isaac-sim/IsaacLab.git --branch v2.3.2
 
 WORKDIR /root/IsaacLab
 RUN ln -s /root/isaacsim _isaac_sim
